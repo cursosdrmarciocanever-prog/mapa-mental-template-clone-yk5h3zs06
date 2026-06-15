@@ -10,7 +10,7 @@ import { ModeToggle } from '@/components/mode-toggle'
 
 export default function Layout() {
   const [searchParams] = useSearchParams()
-  const projectId = searchParams.get('project') || 'p1'
+  const projectId = searchParams.get('project') || 'pessoais'
 
   return (
     <MindMapProvider projectId={projectId}>

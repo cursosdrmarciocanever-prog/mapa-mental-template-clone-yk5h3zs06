@@ -117,12 +117,12 @@ export const MindMapProvider = ({
           ...initial,
           ...parsed,
           nodes:
-            Array.isArray(parsed.nodes) && parsed.nodes.length > 0
+            Array.isArray(parsed?.nodes) && parsed.nodes.length > 0
               ? parsed.nodes
               : initial.nodes,
-          edges: Array.isArray(parsed.edges) ? parsed.edges : initial.edges,
-          viewport: parsed.viewport || initial.viewport,
-          edgeStyle: parsed.edgeStyle || initial.edgeStyle,
+          edges: Array.isArray(parsed?.edges) ? parsed.edges : initial.edges,
+          viewport: parsed?.viewport || initial.viewport,
+          edgeStyle: parsed?.edgeStyle || initial.edgeStyle,
           editingNodeId: null,
           configuringNodeId: null,
           documentViewNodeId: null,
@@ -146,12 +146,12 @@ export const MindMapProvider = ({
           ...initial,
           ...parsed,
           nodes:
-            Array.isArray(parsed.nodes) && parsed.nodes.length > 0
+            Array.isArray(parsed?.nodes) && parsed.nodes.length > 0
               ? parsed.nodes
               : initial.nodes,
-          edges: Array.isArray(parsed.edges) ? parsed.edges : initial.edges,
-          viewport: parsed.viewport || initial.viewport,
-          edgeStyle: parsed.edgeStyle || initial.edgeStyle,
+          edges: Array.isArray(parsed?.edges) ? parsed.edges : initial.edges,
+          viewport: parsed?.viewport || initial.viewport,
+          edgeStyle: parsed?.edgeStyle || initial.edgeStyle,
           editingNodeId: null,
           configuringNodeId: null,
           documentViewNodeId: null,

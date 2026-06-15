@@ -139,7 +139,7 @@ export const MindMapCanvas = () => {
           const { startX, startY, initialNodePos, nodeId } = dragRef.current
           if (!initialNodePos || !nodeId) return
 
-          const scale = state.viewport.scale
+          const scale = state.viewport?.scale || 1
           const dx = (clientX - startX) / scale
           const dy = (clientY - startY) / scale
 
@@ -217,7 +217,7 @@ export const MindMapCanvas = () => {
     if (dragRef.current?.type === 'node') {
       const { startX, startY, initialNodePos, nodeId } = dragRef.current
       if (initialNodePos && nodeId) {
-        const scale = state.viewport.scale
+        const scale = state.viewport?.scale || 1
         const dx = (e.clientX - startX) / scale
         const dy = (e.clientY - startY) / scale
 
@@ -250,8 +250,8 @@ export const MindMapCanvas = () => {
         'transition-colors duration-200',
       )}
       style={{
-        backgroundPosition: `${state.viewport.x}px ${state.viewport.y}px`,
-        backgroundSize: `${20 * state.viewport.scale}px ${20 * state.viewport.scale}px`,
+        backgroundPosition: `${state.viewport?.x || 0}px ${state.viewport?.y || 0}px`,
+        backgroundSize: `${20 * (state.viewport?.scale || 1)}px ${20 * (state.viewport?.scale || 1)}px`,
       }}
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
@@ -262,7 +262,7 @@ export const MindMapCanvas = () => {
       <div
         className="absolute origin-top-left w-full h-full transition-transform duration-75 ease-out will-change-transform"
         style={{
-          transform: `translate(${state.viewport.x}px, ${state.viewport.y}px) scale(${state.viewport.scale})`,
+          transform: `translate(${state.viewport?.x || 0}px, ${state.viewport?.y || 0}px) scale(${state.viewport?.scale || 1})`,
         }}
       >
         <svg
