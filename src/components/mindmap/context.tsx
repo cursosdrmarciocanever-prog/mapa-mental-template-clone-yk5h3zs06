@@ -18,7 +18,7 @@ import {
 
 const MindMapContext = createContext<MindMapContextType | null>(null)
 
-const INITIAL_STATE: MindMapState = {
+const getInitialState = (): MindMapState => ({
   nodes: [
     {
       id: 'root',
@@ -41,9 +41,7 @@ const INITIAL_STATE: MindMapState = {
   documentViewNodeId: null,
   highlightedNodeId: null,
   edgeStyle: 'curved',
-}
-
-const STORAGE_KEY = 'mindmap-data-v3'
+})
 
 const ICONS = [
   'activity',
@@ -58,12 +56,12 @@ const ICONS = [
 ]
 const getRandomIcon = () => ICONS[Math.floor(Math.random() * ICONS.length)]
 
-// Helper to create a new node object (DRY)
 const createNewNode = (
   nodes: MindMapNode[],
   parentId: string | null,
 ): { node: MindMapNode; edge?: MindMapEdge } => {
-  const parent = nodes.find((n) => n.id === parentId)
+  const safeNodes = nodes || []
+  const parent = safeNodes.find((n) => n.id === parentId)
   const newNodeId =
     typeof crypto !== 'undefined' && crypto.randomUUID
       ? crypto.randomUUID()
@@ -71,10 +69,10 @@ const createNewNode = (
 
   let position = { x: 0, y: 0 }
   if (parent) {
-    const siblings = nodes.filter((n) => n.parentId === parentId)
+    const siblings = safeNodes.filter((n) => n.parentId === parentId)
     position = {
-      x: parent.position.x + (parent.width || 200) + 150, // Increased spacing for n8n style
-      y: parent.position.y + siblings.length * 100 - 20,
+      x: (parent.position?.x || 0) + (parent.width || 200) + 150,
+      y: (parent.position?.y || 0) + siblings.length * 100 - 20,
     }
   } else {
     position = { x: window.innerWidth / 2, y: window.innerHeight / 2 }
@@ -89,8 +87,8 @@ const createNewNode = (
     parentId: parentId || undefined,
     width: 200,
     height: 80,
-    selected: true, // Auto-select
-    taskModeEnabled: parent?.taskModeEnabled, // Inherit task mode from parent
+    selected: true,
+    taskModeEnabled: parent?.taskModeEnabled,
   }
 
   const newEdge: MindMapEdge | undefined = parentId
@@ -100,41 +98,85 @@ const createNewNode = (
   return { node: newNode, edge: newEdge }
 }
 
-export const MindMapProvider = ({ children }: { children: ReactNode }) => {
+export const MindMapProvider = ({
+  children,
+  projectId = 'default',
+}: {
+  children: ReactNode
+  projectId?: string
+}) => {
+  const storageKey = `mindmap-data-v3-${projectId}`
+
   const [state, setState] = useState<MindMapState>(() => {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY)
+      const stored = localStorage.getItem(storageKey)
       if (stored) {
         const parsed = JSON.parse(stored)
-        // Automatically hydrate state, but reset ephemeral UI states (editing, configuring)
+        const initial = getInitialState()
         return {
-          ...INITIAL_STATE,
+          ...initial,
           ...parsed,
+          nodes:
+            Array.isArray(parsed.nodes) && parsed.nodes.length > 0
+              ? parsed.nodes
+              : initial.nodes,
+          edges: Array.isArray(parsed.edges) ? parsed.edges : initial.edges,
+          viewport: parsed.viewport || initial.viewport,
+          edgeStyle: parsed.edgeStyle || initial.edgeStyle,
           editingNodeId: null,
           configuringNodeId: null,
           documentViewNodeId: null,
           highlightedNodeId: null,
         }
       }
-      return INITIAL_STATE
+      return getInitialState()
     } catch (error) {
       console.error('Failed to load mindmap state from local storage:', error)
-      return INITIAL_STATE
+      return getInitialState()
     }
   })
 
-  // Real-time updates with debounce to avoid performance issues during rapid interactions like panning
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(storageKey)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        const initial = getInitialState()
+        setState({
+          ...initial,
+          ...parsed,
+          nodes:
+            Array.isArray(parsed.nodes) && parsed.nodes.length > 0
+              ? parsed.nodes
+              : initial.nodes,
+          edges: Array.isArray(parsed.edges) ? parsed.edges : initial.edges,
+          viewport: parsed.viewport || initial.viewport,
+          edgeStyle: parsed.edgeStyle || initial.edgeStyle,
+          editingNodeId: null,
+          configuringNodeId: null,
+          documentViewNodeId: null,
+          highlightedNodeId: null,
+        })
+      } else {
+        setState(getInitialState())
+      }
+    } catch (error) {
+      console.error('Failed to switch project state:', error)
+      setState(getInitialState())
+    }
+  }, [storageKey])
+
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+        localStorage.setItem(storageKey, JSON.stringify(state))
       } catch (error) {
         console.error('Failed to save mindmap state to local storage:', error)
       }
-    }, 500) // 500ms debounce ensures we capture changes without thrashing storage
+    }, 500)
 
     return () => clearTimeout(timeoutId)
-  }, [state])
+  }, [state, storageKey])
 
   const setEditingNodeId = useCallback((id: string | null) => {
     setState((prev) => ({ ...prev, editingNodeId: id }))
@@ -172,14 +214,14 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
     setState((prev) => {
       const { node, edge } = createNewNode(prev.nodes, parentId)
 
-      const updatedNodes = prev.nodes
+      const updatedNodes = (prev.nodes || [])
         .map((n) => ({ ...n, selected: false }))
         .concat(node)
 
       return {
         ...prev,
         nodes: updatedNodes,
-        edges: edge ? [...prev.edges, edge] : prev.edges,
+        edges: edge ? [...(prev.edges || []), edge] : prev.edges || [],
         editingNodeId: node.id,
       }
     })
@@ -187,21 +229,20 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
 
   const addSiblingNode = useCallback((nodeId: string) => {
     setState((prev) => {
-      const referenceNode = prev.nodes.find((n) => n.id === nodeId)
+      const referenceNode = (prev.nodes || []).find((n) => n.id === nodeId)
       if (!referenceNode) return prev
 
       const parentId = referenceNode.parentId || null
-
       const { node, edge } = createNewNode(prev.nodes, parentId)
 
-      const updatedNodes = prev.nodes
+      const updatedNodes = (prev.nodes || [])
         .map((n) => ({ ...n, selected: false }))
         .concat(node)
 
       return {
         ...prev,
         nodes: updatedNodes,
-        edges: edge ? [...prev.edges, edge] : prev.edges,
+        edges: edge ? [...(prev.edges || []), edge] : prev.edges || [],
         editingNodeId: node.id,
       }
     })
@@ -210,7 +251,7 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
   const updateNodeLabel = useCallback((id: string, label: string) => {
     setState((prev) => ({
       ...prev,
-      nodes: prev.nodes.map((n) => (n.id === id ? { ...n, label } : n)),
+      nodes: (prev.nodes || []).map((n) => (n.id === id ? { ...n, label } : n)),
     }))
   }, [])
 
@@ -218,7 +259,9 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
     (id: string, description: string) => {
       setState((prev) => ({
         ...prev,
-        nodes: prev.nodes.map((n) => (n.id === id ? { ...n, description } : n)),
+        nodes: (prev.nodes || []).map((n) =>
+          n.id === id ? { ...n, description } : n,
+        ),
       }))
     },
     [],
@@ -228,7 +271,9 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
     (id: string, icon?: string, color?: string) => {
       setState((prev) => ({
         ...prev,
-        nodes: prev.nodes.map((n) => (n.id === id ? { ...n, icon, color } : n)),
+        nodes: (prev.nodes || []).map((n) =>
+          n.id === id ? { ...n, icon, color } : n,
+        ),
       }))
     },
     [],
@@ -239,11 +284,12 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
       const dx = 350
       const dy = 120
 
-      const root = prev.nodes.find((n) => !n.parentId)
+      const safeNodes = prev.nodes || []
+      const root = safeNodes.find((n) => !n.parentId)
       if (!root) return prev
 
       const childrenMap = new Map<string, string[]>()
-      prev.nodes.forEach((n) => {
+      safeNodes.forEach((n) => {
         if (n.parentId) {
           if (!childrenMap.has(n.parentId)) childrenMap.set(n.parentId, [])
           childrenMap.get(n.parentId)!.push(n.id)
@@ -266,21 +312,21 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
       }
       calculateHeight(root.id)
 
-      const newNodes = [...prev.nodes]
+      const newNodes = [...safeNodes]
 
       const assignPositions = (id: string, x: number, startY: number) => {
         const nodeIndex = newNodes.findIndex((n) => n.id === id)
         if (nodeIndex !== -1) {
           newNodes[nodeIndex] = {
             ...newNodes[nodeIndex],
-            position: { x, y: startY + heights.get(id)! / 2 - dy / 2 },
+            position: { x, y: startY + (heights.get(id) || dy) / 2 - dy / 2 },
           }
         }
 
         let currentY = startY
         const children = childrenMap.get(id) || []
         children.forEach((childId) => {
-          const childH = heights.get(childId)!
+          const childH = heights.get(childId) || dy
           assignPositions(childId, x + dx, currentY)
           currentY += childH
         })
@@ -288,8 +334,8 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
 
       assignPositions(
         root.id,
-        root.position.x,
-        root.position.y - heights.get(root.id)! / 2,
+        root.position?.x || 0,
+        (root.position?.y || 0) - (heights.get(root.id) || dy) / 2,
       )
 
       return { ...prev, nodes: newNodes }
@@ -299,8 +345,7 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
   const updateNodeDimensions = useCallback(
     (id: string, width: number, height: number) => {
       setState((prev) => {
-        const node = prev.nodes.find((n) => n.id === id)
-        // Prevent unnecessary updates if dimensions haven't significantly changed
+        const node = (prev.nodes || []).find((n) => n.id === id)
         if (
           node &&
           Math.abs((node.width || 0) - width) < 1 &&
@@ -310,7 +355,7 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
         }
         return {
           ...prev,
-          nodes: prev.nodes.map((n) =>
+          nodes: (prev.nodes || []).map((n) =>
             n.id === id ? { ...n, width, height } : n,
           ),
         }
@@ -325,10 +370,9 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
 
       const nodesToDelete = new Set<string>([id])
       let changed = true
-      // Recursively find all children to delete
       while (changed) {
         changed = false
-        prev.nodes.forEach((n) => {
+        ;(prev.nodes || []).forEach((n) => {
           if (
             n.parentId &&
             nodesToDelete.has(n.parentId) &&
@@ -351,8 +395,8 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
 
       return {
         ...prev,
-        nodes: prev.nodes.filter((n) => !nodesToDelete.has(n.id)),
-        edges: prev.edges.filter(
+        nodes: (prev.nodes || []).filter((n) => !nodesToDelete.has(n.id)),
+        edges: (prev.edges || []).filter(
           (e) => !nodesToDelete.has(e.source) && !nodesToDelete.has(e.target),
         ),
         editingNodeId: isDeletingEditingNode ? null : prev.editingNodeId,
@@ -372,14 +416,16 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
   const moveNode = useCallback((id: string, position: Position) => {
     setState((prev) => ({
       ...prev,
-      nodes: prev.nodes.map((n) => (n.id === id ? { ...n, position } : n)),
+      nodes: (prev.nodes || []).map((n) =>
+        n.id === id ? { ...n, position } : n,
+      ),
     }))
   }, [])
 
   const selectNode = useCallback((id: string | null) => {
     setState((prev) => ({
       ...prev,
-      nodes: prev.nodes.map((n) => ({ ...n, selected: n.id === id })),
+      nodes: (prev.nodes || []).map((n) => ({ ...n, selected: n.id === id })),
     }))
   }, [])
 
@@ -388,26 +434,30 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
   }, [])
 
   const pan = useCallback((dx: number, dy: number) => {
-    setState((prev) => ({
-      ...prev,
-      viewport: {
-        ...prev.viewport,
-        x: prev.viewport.x + dx,
-        y: prev.viewport.y + dy,
-      },
-    }))
+    setState((prev) => {
+      const currentViewport = prev.viewport || { x: 0, y: 0, scale: 1 }
+      return {
+        ...prev,
+        viewport: {
+          ...currentViewport,
+          x: currentViewport.x + dx,
+          y: currentViewport.y + dy,
+        },
+      }
+    })
   }, [])
 
   const zoom = useCallback(
     (factor: number, center?: { x: number; y: number }) => {
       setState((prev) => {
-        const currentZoom = prev.viewport.scale
+        const currentViewport = prev.viewport || { x: 0, y: 0, scale: 1 }
+        const currentZoom = currentViewport.scale
         const newZoom = Math.min(Math.max(currentZoom * factor, 0.1), 4)
 
         if (center) {
           const scaleChange = newZoom / currentZoom
-          const newX = center.x - (center.x - prev.viewport.x) * scaleChange
-          const newY = center.y - (center.y - prev.viewport.y) * scaleChange
+          const newX = center.x - (center.x - currentViewport.x) * scaleChange
+          const newY = center.y - (center.y - currentViewport.y) * scaleChange
           return {
             ...prev,
             viewport: { x: newX, y: newY, scale: newZoom },
@@ -416,7 +466,7 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
 
         return {
           ...prev,
-          viewport: { ...prev.viewport, scale: newZoom },
+          viewport: { ...currentViewport, scale: newZoom },
         }
       })
     },
@@ -433,10 +483,11 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
 
   const focusNode = useCallback((id: string) => {
     setState((prev) => {
-      const node = prev.nodes.find((n) => n.id === id)
-      if (!node) return prev
+      const node = (prev.nodes || []).find((n) => n.id === id)
+      if (!node || !node.position) return prev
 
-      const scale = prev.viewport.scale
+      const currentViewport = prev.viewport || { x: 0, y: 0, scale: 1 }
+      const scale = currentViewport.scale
       const centerX = window.innerWidth / 2
       const centerY = window.innerHeight / 2
 
@@ -448,19 +499,18 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
 
       return {
         ...prev,
-        viewport: { ...prev.viewport, x: newX, y: newY },
+        viewport: { ...currentViewport, x: newX, y: newY },
       }
     })
   }, [])
 
   const toggleTaskMode = useCallback((id: string, enabled: boolean) => {
     setState((prev) => {
-      // Find all descendants to enable/disable task mode for the whole branch
       const nodesToUpdate = new Set<string>([id])
       let changed = true
       while (changed) {
         changed = false
-        prev.nodes.forEach((n) => {
+        ;(prev.nodes || []).forEach((n) => {
           if (
             n.parentId &&
             nodesToUpdate.has(n.parentId) &&
@@ -474,7 +524,7 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
 
       return {
         ...prev,
-        nodes: prev.nodes.map((n) =>
+        nodes: (prev.nodes || []).map((n) =>
           nodesToUpdate.has(n.id) ? { ...n, taskModeEnabled: enabled } : n,
         ),
       }
@@ -484,7 +534,9 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
   const toggleNodeChecked = useCallback((id: string, checked: boolean) => {
     setState((prev) => ({
       ...prev,
-      nodes: prev.nodes.map((n) => (n.id === id ? { ...n, checked } : n)),
+      nodes: (prev.nodes || []).map((n) =>
+        n.id === id ? { ...n, checked } : n,
+      ),
     }))
   }, [])
 

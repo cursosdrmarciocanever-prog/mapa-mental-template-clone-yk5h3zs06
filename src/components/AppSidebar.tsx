@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   Sidebar,
   SidebarContent,
@@ -30,7 +31,29 @@ const mockedProfessionalProjects = [
 
 export function AppSidebar() {
   const [search, setSearch] = useState('')
-  const [activeTab, setActiveTab] = useState('pessoais')
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const activeTab = searchParams.get('tab') || 'pessoais'
+  const activeProjectId =
+    searchParams.get('project') || (activeTab === 'pessoais' ? 'p1' : 'w1')
+
+  const handleTabChange = (tab: string) => {
+    setSearchParams(
+      (prev) => {
+        prev.set('tab', tab)
+        prev.set('project', tab === 'pessoais' ? 'p1' : 'w1')
+        return prev
+      },
+      { replace: true },
+    )
+  }
+
+  const handleProjectSelect = (projectId: string) => {
+    setSearchParams((prev) => {
+      prev.set('project', projectId)
+      return prev
+    })
+  }
 
   const filterProjects = (projects: { id: string; name: string }[]) =>
     projects.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
@@ -59,7 +82,7 @@ export function AppSidebar() {
 
         <Tabs
           value={activeTab}
-          onValueChange={setActiveTab}
+          onValueChange={handleTabChange}
           className="w-full flex-1 flex flex-col min-h-0"
         >
           <div className="px-4 pb-2 shrink-0">
@@ -86,7 +109,10 @@ export function AppSidebar() {
                   <SidebarMenu>
                     {personal.map((p) => (
                       <SidebarMenuItem key={p.id}>
-                        <SidebarMenuButton isActive={p.id === 'p1'}>
+                        <SidebarMenuButton
+                          isActive={p.id === activeProjectId}
+                          onClick={() => handleProjectSelect(p.id)}
+                        >
                           <FileText className="h-4 w-4" />
                           <span className="truncate">{p.name}</span>
                         </SidebarMenuButton>
@@ -112,7 +138,10 @@ export function AppSidebar() {
                   <SidebarMenu>
                     {professional.map((p) => (
                       <SidebarMenuItem key={p.id}>
-                        <SidebarMenuButton>
+                        <SidebarMenuButton
+                          isActive={p.id === activeProjectId}
+                          onClick={() => handleProjectSelect(p.id)}
+                        >
                           <FileText className="h-4 w-4" />
                           <span className="truncate">{p.name}</span>
                         </SidebarMenuButton>

@@ -44,7 +44,7 @@ export const MindMapCanvas = () => {
       // If editing text, do not trigger creation shortcuts (except specifically handled in Node)
       if (state.editingNodeId) return
 
-      const selectedNode = state.nodes.find((n) => n.selected)
+      const selectedNode = (state.nodes || []).find((n) => n.selected)
       if (!selectedNode) return
 
       // Sibling Creation
@@ -88,7 +88,7 @@ export const MindMapCanvas = () => {
     if (nodeElement) {
       const nodeId = nodeElement.dataset.nodeId
       if (nodeId) {
-        const node = state.nodes.find((n) => n.id === nodeId)
+        const node = (state.nodes || []).find((n) => n.id === nodeId)
         if (node) {
           dragRef.current = {
             type: 'node',
@@ -156,19 +156,26 @@ export const MindMapCanvas = () => {
           }
 
           // 2. Direct DOM update for Connected Edges
-          const connectedEdges = state.edges.filter(
+          const connectedEdges = (state.edges || []).filter(
             (edge) => edge.source === nodeId || edge.target === nodeId,
           )
 
           connectedEdges.forEach((edge) => {
             const isSource = edge.source === nodeId
             const otherNodeId = isSource ? edge.target : edge.source
-            const otherNode = state.nodes.find((n) => n.id === otherNodeId)
+            const otherNode = (state.nodes || []).find(
+              (n) => n.id === otherNodeId,
+            )
 
             if (otherNode) {
               // Create a temporary node object with the new position for calculation
+              const currentNode = (state.nodes || []).find(
+                (n) => n.id === nodeId,
+              )
+              if (!currentNode) return
+
               const draggedNodeStub = {
-                ...state.nodes.find((n) => n.id === nodeId)!,
+                ...currentNode,
                 position: { x: newX, y: newY },
               }
 
@@ -262,17 +269,26 @@ export const MindMapCanvas = () => {
           className="absolute top-0 left-0 overflow-visible pointer-events-none"
           style={{ width: '100%', height: '100%' }}
         >
-          {state.edges.map((edge) => (
-            <Edge
-              key={edge.id}
-              edge={edge}
-              sourceNode={state.nodes.find((n) => n.id === edge.source)}
-              targetNode={state.nodes.find((n) => n.id === edge.target)}
-            />
-          ))}
+          {(state.edges || []).map((edge) => {
+            const sourceNode = (state.nodes || []).find(
+              (n) => n.id === edge.source,
+            )
+            const targetNode = (state.nodes || []).find(
+              (n) => n.id === edge.target,
+            )
+            if (!sourceNode || !targetNode) return null
+            return (
+              <Edge
+                key={edge.id}
+                edge={edge}
+                sourceNode={sourceNode}
+                targetNode={targetNode}
+              />
+            )
+          })}
         </svg>
 
-        {state.nodes.map((node) => (
+        {(state.nodes || []).map((node) => (
           <Node key={node.id} node={node} />
         ))}
       </div>
@@ -286,8 +302,8 @@ export const MindMapCanvas = () => {
       <NodeConfigurationDialog />
       <DocumentViewSheet />
 
-      {state.nodes.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+      {(!state.nodes || state.nodes.length === 0) && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
           <div className="bg-card p-8 rounded-xl shadow-lg border border-border text-center pointer-events-auto max-w-sm">
             <h3 className="text-xl font-bold mb-2 text-card-foreground">
               Empty Workflow
