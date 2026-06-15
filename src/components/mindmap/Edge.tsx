@@ -1,5 +1,6 @@
 import { MindMapEdge, MindMapNode } from '@/lib/types'
 import { getEdgePath, cn } from '@/lib/utils'
+import { useMindMap } from './context'
 
 type EdgeProps = {
   edge: MindMapEdge
@@ -8,9 +9,10 @@ type EdgeProps = {
 }
 
 export const Edge = ({ edge, sourceNode, targetNode }: EdgeProps) => {
+  const { state } = useMindMap()
   if (!sourceNode || !targetNode) return null
 
-  const pathParams = getEdgePath(sourceNode, targetNode)
+  const pathParams = getEdgePath(sourceNode, targetNode, state.edgeStyle)
 
   return (
     <g data-edge-id={edge.id}>

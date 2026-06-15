@@ -38,10 +38,12 @@ export type MindMapState = {
   editingNodeId: string | null
   configuringNodeId: string | null
   documentViewNodeId: string | null
+  edgeStyle?: 'curved' | 'straight'
 }
 
 export type MindMapContextType = {
   state: MindMapState
+  setEdgeStyle: (style: 'curved' | 'straight') => void
   addNode: (parentId: string | null) => void
   addSiblingNode: (nodeId: string) => void
   setEditingNodeId: (id: string | null) => void

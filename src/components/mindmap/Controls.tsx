@@ -1,6 +1,14 @@
 import { useMindMap } from './context'
 import { Button } from '@/components/ui/button'
-import { Minus, Plus, Maximize, Map, Network } from 'lucide-react'
+import {
+  Minus,
+  Plus,
+  Maximize,
+  Map,
+  Network,
+  Spline,
+  MoveDiagonal,
+} from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,
@@ -15,7 +23,7 @@ export const MindMapControls = ({
   showMiniMap: boolean
   toggleMiniMap: () => void
 }) => {
-  const { zoom, fitView, autoLayout } = useMindMap()
+  const { state, setEdgeStyle, zoom, fitView, autoLayout } = useMindMap()
 
   return (
     <div className="absolute bottom-6 left-6 flex flex-col gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-2 rounded-xl border shadow-xl z-50">
@@ -27,6 +35,31 @@ export const MindMapControls = ({
         </TooltipTrigger>
         <TooltipContent side="right">Auto Layout</TooltipContent>
       </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() =>
+              setEdgeStyle(
+                state.edgeStyle === 'straight' ? 'curved' : 'straight',
+              )
+            }
+          >
+            {state.edgeStyle === 'straight' ? (
+              <MoveDiagonal className="h-4 w-4" />
+            ) : (
+              <Spline className="h-4 w-4" />
+            )}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="right">
+          Connection Style:{' '}
+          {state.edgeStyle === 'straight' ? 'Straight' : 'Curved'}
+        </TooltipContent>
+      </Tooltip>
+
       <div className="h-px bg-border w-full my-1" />
 
       <Tooltip>

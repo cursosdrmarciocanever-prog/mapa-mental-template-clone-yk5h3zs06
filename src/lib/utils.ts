@@ -21,6 +21,7 @@ export function cn(...inputs: ClassValue[]) {
 export function getEdgePath(
   source: Partial<MindMapNode> & { position: { x: number; y: number } },
   target: Partial<MindMapNode> & { position: { x: number; y: number } },
+  edgeStyle: 'curved' | 'straight' = 'curved',
 ) {
   const sW = source.width || 120
   const sH = source.height || 40
@@ -31,6 +32,10 @@ export function getEdgePath(
   const sy = source.position.y + sH / 2
   const tx = target.position.x
   const ty = target.position.y + tH / 2
+
+  if (edgeStyle === 'straight') {
+    return `M ${sx} ${sy} L ${tx} ${ty}`
+  }
 
   const deltaX = Math.abs(tx - sx)
   const controlPointOffset = Math.max(deltaX * 0.5, 50)

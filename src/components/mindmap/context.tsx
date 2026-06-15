@@ -38,6 +38,7 @@ const INITIAL_STATE: MindMapState = {
   editingNodeId: null,
   configuringNodeId: null,
   documentViewNodeId: null,
+  edgeStyle: 'curved',
 }
 
 const STORAGE_KEY = 'mindmap-data-v3'
@@ -105,6 +106,7 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
         const parsed = JSON.parse(stored)
         // Automatically hydrate state, but reset ephemeral UI states (editing, configuring)
         return {
+          ...INITIAL_STATE,
           ...parsed,
           editingNodeId: null,
           configuringNodeId: null,
@@ -141,6 +143,10 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
 
   const setDocumentViewNodeId = useCallback((id: string | null) => {
     setState((prev) => ({ ...prev, documentViewNodeId: id }))
+  }, [])
+
+  const setEdgeStyle = useCallback((style: 'curved' | 'straight') => {
+    setState((prev) => ({ ...prev, edgeStyle: style }))
   }, [])
 
   const addNode = useCallback((parentId: string | null) => {
@@ -462,6 +468,7 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
     <MindMapContext.Provider
       value={{
         state,
+        setEdgeStyle,
         addNode,
         addSiblingNode,
         setEditingNodeId,
