@@ -199,6 +199,78 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
     [],
   )
 
+  const updateNodeAppearance = useCallback(
+    (id: string, icon?: string, color?: string) => {
+      setState((prev) => ({
+        ...prev,
+        nodes: prev.nodes.map((n) => (n.id === id ? { ...n, icon, color } : n)),
+      }))
+    },
+    [],
+  )
+
+  const autoLayout = useCallback(() => {
+    setState((prev) => {
+      const dx = 350
+      const dy = 120
+
+      const root = prev.nodes.find((n) => !n.parentId)
+      if (!root) return prev
+
+      const childrenMap = new Map<string, string[]>()
+      prev.nodes.forEach((n) => {
+        if (n.parentId) {
+          if (!childrenMap.has(n.parentId)) childrenMap.set(n.parentId, [])
+          childrenMap.get(n.parentId)!.push(n.id)
+        }
+      })
+
+      const heights = new Map<string, number>()
+      const calculateHeight = (id: string) => {
+        const children = childrenMap.get(id) || []
+        if (children.length === 0) {
+          heights.set(id, dy)
+          return dy
+        }
+        const h = children.reduce(
+          (sum, childId) => sum + calculateHeight(childId),
+          0,
+        )
+        heights.set(id, h)
+        return h
+      }
+      calculateHeight(root.id)
+
+      const newNodes = [...prev.nodes]
+
+      const assignPositions = (id: string, x: number, startY: number) => {
+        const nodeIndex = newNodes.findIndex((n) => n.id === id)
+        if (nodeIndex !== -1) {
+          newNodes[nodeIndex] = {
+            ...newNodes[nodeIndex],
+            position: { x, y: startY + heights.get(id)! / 2 - dy / 2 },
+          }
+        }
+
+        let currentY = startY
+        const children = childrenMap.get(id) || []
+        children.forEach((childId) => {
+          const childH = heights.get(childId)!
+          assignPositions(childId, x + dx, currentY)
+          currentY += childH
+        })
+      }
+
+      assignPositions(
+        root.id,
+        root.position.x,
+        root.position.y - heights.get(root.id)! / 2,
+      )
+
+      return { ...prev, nodes: newNodes }
+    })
+  }, [])
+
   const updateNodeDimensions = useCallback(
     (id: string, width: number, height: number) => {
       setState((prev) => {
@@ -409,6 +481,8 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
         focusNode,
         toggleTaskMode,
         toggleNodeChecked,
+        autoLayout,
+        updateNodeAppearance,
       }}
     >
       {children}

@@ -1,6 +1,6 @@
 import { useMindMap } from './context'
 import { Button } from '@/components/ui/button'
-import { Minus, Plus, Maximize, Map } from 'lucide-react'
+import { Minus, Plus, Maximize, Map, Network } from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,
@@ -15,10 +15,20 @@ export const MindMapControls = ({
   showMiniMap: boolean
   toggleMiniMap: () => void
 }) => {
-  const { zoom, fitView } = useMindMap()
+  const { zoom, fitView, autoLayout } = useMindMap()
 
   return (
     <div className="absolute bottom-6 left-6 flex flex-col gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-2 rounded-xl border shadow-xl z-50">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="icon" onClick={() => autoLayout()}>
+            <Network className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="right">Auto Layout</TooltipContent>
+      </Tooltip>
+      <div className="h-px bg-border w-full my-1" />
+
       <Tooltip>
         <TooltipTrigger asChild>
           <Button variant="ghost" size="icon" onClick={() => zoom(1.2)}>

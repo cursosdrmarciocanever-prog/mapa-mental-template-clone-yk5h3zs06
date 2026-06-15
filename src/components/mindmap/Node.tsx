@@ -2,21 +2,8 @@ import { useState, useRef, useEffect, useLayoutEffect } from 'react'
 import { MindMapNode } from '@/lib/types'
 import { useMindMap } from './context'
 import { cn } from '@/lib/utils'
-import {
-  Plus,
-  Trash2,
-  Zap,
-  Activity,
-  Box,
-  Database,
-  Cloud,
-  Mail,
-  FileText,
-  Settings,
-  Globe,
-  Cpu,
-  FileText as FileTextIcon,
-} from 'lucide-react'
+import { Plus, Trash2, Settings, FileText as FileTextIcon } from 'lucide-react'
+import * as LucideIcons from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 
@@ -24,17 +11,18 @@ type NodeProps = {
   node: MindMapNode
 }
 
-const IconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  zap: Zap,
-  activity: Activity,
-  box: Box,
-  database: Database,
-  cloud: Cloud,
-  mail: Mail,
-  'file-text': FileText,
-  settings: Settings,
-  globe: Globe,
-  cpu: Cpu,
+// Fallback legacy map
+const LegacyIconMap: Record<string, string> = {
+  zap: 'Zap',
+  activity: 'Activity',
+  box: 'Box',
+  database: 'Database',
+  cloud: 'Cloud',
+  mail: 'Mail',
+  'file-text': 'FileText',
+  settings: 'Settings',
+  globe: 'Globe',
+  cpu: 'Cpu',
 }
 
 export const Node = ({ node }: NodeProps) => {
@@ -58,8 +46,8 @@ export const Node = ({ node }: NodeProps) => {
   const isTaskMode = node.taskModeEnabled
   const isChecked = node.checked && isTaskMode
 
-  const IconComponent =
-    node.icon && IconMap[node.icon] ? IconMap[node.icon] : Zap
+  const iconName = node.icon ? LegacyIconMap[node.icon] || node.icon : 'Zap'
+  const IconComponent = (LucideIcons as any)[iconName] || LucideIcons.Zap
 
   // Sync state label when node prop changes (e.g. undo/redo or external update)
   useEffect(() => {
@@ -153,16 +141,18 @@ export const Node = ({ node }: NodeProps) => {
         'transition-all duration-200 ease-out',
         isChecked
           ? 'bg-green-100 dark:bg-green-900/30 border-green-200 dark:border-green-800'
-          : 'bg-card border-border hover:border-ring/50 hover:shadow-md',
+          : 'bg-card hover:border-ring/50 hover:shadow-md',
         node.selected
           ? 'ring-2 ring-primary border-primary z-30 shadow-md'
-          : 'z-10',
+          : 'border-border z-10',
         'cursor-grab active:cursor-grabbing',
       )}
       style={{
         left: node.position.x,
         top: node.position.y,
-        // We do NOT set width/height here to allow CSS and content to drive the size
+        borderColor: node.color && !node.selected ? node.color : undefined,
+        backgroundColor:
+          node.color && !isChecked ? `${node.color}1A` : undefined,
       }}
       onDoubleClick={handleDoubleClick}
       data-node-id={node.id}
@@ -172,10 +162,15 @@ export const Node = ({ node }: NodeProps) => {
         <div
           className={cn(
             'shrink-0 flex items-center justify-center w-10 h-10 rounded-lg',
-            isRoot
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-secondary text-secondary-foreground',
+            !node.color &&
+              (isRoot
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-secondary text-secondary-foreground'),
           )}
+          style={{
+            backgroundColor: node.color ? node.color : undefined,
+            color: node.color ? '#ffffff' : undefined,
+          }}
         >
           <IconComponent className="w-5 h-5" />
         </div>

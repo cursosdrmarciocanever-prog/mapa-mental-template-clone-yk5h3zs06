@@ -9,6 +9,7 @@ export type MindMapNode = {
   subtitle?: string
   description?: string
   icon?: string
+  color?: string
   position: Position
   parentId?: string
   width?: number
@@ -60,4 +61,6 @@ export type MindMapContextType = {
   focusNode: (id: string) => void
   toggleTaskMode: (id: string, enabled: boolean) => void
   toggleNodeChecked: (id: string, checked: boolean) => void
+  autoLayout: () => void
+  updateNodeAppearance: (id: string, icon?: string, color?: string) => void
 }
