@@ -1,11 +1,34 @@
-/* Home Page - Replace this page layout, components, content, behavior with what you want and translate to the language of the user */
+import { MindMapProvider } from '@/components/mindmap/context'
+import { MindMapCanvas } from '@/components/mindmap/Canvas'
+import {
+  SidebarProvider,
+  SidebarTrigger,
+  SidebarInset,
+} from '@/components/ui/sidebar'
+import { AppSidebar } from '@/components/AppSidebar'
+import { Separator } from '@/components/ui/separator'
+import { ModeToggle } from '@/components/mode-toggle'
+
 const Index = () => {
   return (
-    <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-6">
-        This is a example page ready to be rewritten with your own content
-      </h1>
-    </div>
+    <MindMapProvider>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4 bg-background/80 backdrop-blur z-40 sticky top-0 transition-colors duration-200">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <h1 className="font-semibold text-sm md:text-base flex-1">
+              React Flow Mindmap (Custom Implementation)
+            </h1>
+            <ModeToggle />
+          </header>
+          <main className="flex-1 relative overflow-hidden h-[calc(100svh-3.5rem)]">
+            <MindMapCanvas />
+          </main>
+        </SidebarInset>
+      </SidebarProvider>
+    </MindMapProvider>
   )
 }
 
