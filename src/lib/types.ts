@@ -38,6 +38,7 @@ export type MindMapState = {
   editingNodeId: string | null
   configuringNodeId: string | null
   documentViewNodeId: string | null
+  highlightedNodeId: string | null
   edgeStyle?: 'curved' | 'straight'
 }
 
@@ -49,6 +50,7 @@ export type MindMapContextType = {
   setEditingNodeId: (id: string | null) => void
   setConfiguringNodeId: (id: string | null) => void
   setDocumentViewNodeId: (id: string | null) => void
+  setHighlightedNodeId: (id: string | null) => void
   updateNodeLabel: (id: string, label: string) => void
   updateNodeDescription: (id: string, description: string) => void
   updateNodeDimensions: (id: string, width: number, height: number) => void

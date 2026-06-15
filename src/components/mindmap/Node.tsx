@@ -45,6 +45,7 @@ export const Node = ({ node }: NodeProps) => {
   const isRoot = node.id === 'root'
   const isTaskMode = node.taskModeEnabled
   const isChecked = node.checked && isTaskMode
+  const isHighlighted = state.highlightedNodeId === node.id
 
   const iconName = node.icon ? LegacyIconMap[node.icon] || node.icon : 'Zap'
   const IconComponent = (LucideIcons as any)[iconName] || LucideIcons.Zap
@@ -142,9 +143,11 @@ export const Node = ({ node }: NodeProps) => {
         isChecked
           ? 'bg-green-100 dark:bg-green-900/30 border-green-200 dark:border-green-800'
           : 'bg-card hover:border-ring/50 hover:shadow-md',
-        node.selected
-          ? 'ring-2 ring-primary border-primary z-30 shadow-md'
-          : 'border-border z-10',
+        isHighlighted
+          ? 'ring-4 ring-yellow-400/80 dark:ring-yellow-500/80 border-yellow-500 dark:border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.5)] z-40'
+          : node.selected
+            ? 'ring-2 ring-primary border-primary z-30 shadow-md'
+            : 'border-border z-10',
         'cursor-grab active:cursor-grabbing',
       )}
       style={{

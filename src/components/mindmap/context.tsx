@@ -4,6 +4,7 @@ import {
   useEffect,
   useState,
   useCallback,
+  useRef,
   type ReactNode,
 } from 'react'
 import {
@@ -38,6 +39,7 @@ const INITIAL_STATE: MindMapState = {
   editingNodeId: null,
   configuringNodeId: null,
   documentViewNodeId: null,
+  highlightedNodeId: null,
   edgeStyle: 'curved',
 }
 
@@ -111,6 +113,7 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
           editingNodeId: null,
           configuringNodeId: null,
           documentViewNodeId: null,
+          highlightedNodeId: null,
         }
       }
       return INITIAL_STATE
@@ -143,6 +146,22 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
 
   const setDocumentViewNodeId = useCallback((id: string | null) => {
     setState((prev) => ({ ...prev, documentViewNodeId: id }))
+  }, [])
+
+  const highlightTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  const setHighlightedNodeId = useCallback((id: string | null) => {
+    setState((prev) => ({ ...prev, highlightedNodeId: id }))
+
+    if (highlightTimeoutRef.current) {
+      clearTimeout(highlightTimeoutRef.current)
+    }
+
+    if (id) {
+      highlightTimeoutRef.current = setTimeout(() => {
+        setState((prev) => ({ ...prev, highlightedNodeId: null }))
+      }, 3000)
+    }
   }, [])
 
   const setEdgeStyle = useCallback((style: 'curved' | 'straight') => {
@@ -327,6 +346,8 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
         prev.configuringNodeId && nodesToDelete.has(prev.configuringNodeId)
       const isDeletingDocumentNode =
         prev.documentViewNodeId && nodesToDelete.has(prev.documentViewNodeId)
+      const isDeletingHighlightedNode =
+        prev.highlightedNodeId && nodesToDelete.has(prev.highlightedNodeId)
 
       return {
         ...prev,
@@ -341,6 +362,9 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
         documentViewNodeId: isDeletingDocumentNode
           ? null
           : prev.documentViewNodeId,
+        highlightedNodeId: isDeletingHighlightedNode
+          ? null
+          : prev.highlightedNodeId,
       }
     })
   }, [])
@@ -474,6 +498,7 @@ export const MindMapProvider = ({ children }: { children: ReactNode }) => {
         setEditingNodeId,
         setConfiguringNodeId,
         setDocumentViewNodeId,
+        setHighlightedNodeId,
         updateNodeLabel,
         updateNodeDescription,
         updateNodeDimensions,
