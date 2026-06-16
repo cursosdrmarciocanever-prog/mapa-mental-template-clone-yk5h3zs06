@@ -17,26 +17,29 @@ import {
 import { cn } from '@/lib/utils'
 
 interface MindMapTreeProps {
-  nodes: MindMapNode[]
+  nodes?: MindMapNode[]
 }
 
 export const SidebarTree = ({ nodes }: MindMapTreeProps) => {
+  const mindMap = useMindMap()
+  const actualNodes = nodes ?? mindMap?.state?.nodes ?? []
+
   return (
     <>
-      <MindMapTreeList nodes={nodes} parentId={undefined} level={0} />
+      <MindMapTreeList nodes={actualNodes} parentId={undefined} level={0} />
     </>
   )
 }
 
 interface MindMapTreeListProps {
-  nodes: MindMapNode[]
+  nodes?: MindMapNode[]
   parentId?: string
   level: number
 }
 
 const MindMapTreeList = ({ nodes, parentId, level }: MindMapTreeListProps) => {
-  const items = nodes.filter(
-    (n) => n.parentId === parentId || (!n.parentId && !parentId),
+  const items = (nodes || []).filter(
+    (n) => n?.parentId === parentId || (!n?.parentId && !parentId),
   )
 
   if (items.length === 0) return null
@@ -62,14 +65,21 @@ interface MindMapTreeItemProps {
 }
 
 const MindMapTreeItem = ({ node, allNodes, level }: MindMapTreeItemProps) => {
-  const { selectNode, focusNode } = useMindMap()
-  const hasChildren = allNodes.some((n) => n.parentId === node.id)
+  const mindMap = useMindMap()
+  const selectNode = mindMap?.selectNode ?? (() => {})
+  const focusNode = mindMap?.focusNode ?? (() => {})
+
+  const hasChildren = (allNodes || []).some((n) => n?.parentId === node?.id)
 
   const handleNodeClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    selectNode(node.id)
-    focusNode(node.id)
+    if (node?.id) {
+      selectNode(node.id)
+      focusNode(node.id)
+    }
   }
+
+  if (!node) return null
 
   // Root level items
   if (level === 0) {
