@@ -27,8 +27,8 @@ const getInitialState = (): MindMapState => ({
       description: 'This is the starting point of your workflow.',
       icon: 'zap',
       position: {
-        x: window.innerWidth / 2 - 100,
-        y: window.innerHeight / 2 - 40,
+        x: typeof window !== 'undefined' ? window.innerWidth / 2 - 100 : 400,
+        y: typeof window !== 'undefined' ? window.innerHeight / 2 - 40 : 300,
       },
       width: 200,
       height: 80,
@@ -54,13 +54,14 @@ const ICONS = [
   'globe',
   'cpu',
 ]
+
 const getRandomIcon = () => ICONS[Math.floor(Math.random() * ICONS.length)]
 
 const createNewNode = (
   nodes: MindMapNode[],
   parentId: string | null,
 ): { node: MindMapNode; edge?: MindMapEdge } => {
-  const safeNodes = nodes || []
+  const safeNodes = Array.isArray(nodes) ? nodes : []
   const parent = safeNodes.find((n) => n.id === parentId)
   const newNodeId =
     typeof crypto !== 'undefined' && crypto.randomUUID
@@ -75,7 +76,10 @@ const createNewNode = (
       y: (parent.position?.y || 0) + siblings.length * 100 - 20,
     }
   } else {
-    position = { x: window.innerWidth / 2, y: window.innerHeight / 2 }
+    position = {
+      x: typeof window !== 'undefined' ? window.innerWidth / 2 : 500,
+      y: typeof window !== 'undefined' ? window.innerHeight / 2 : 500,
+    }
   }
 
   const newNode: MindMapNode = {
@@ -98,6 +102,72 @@ const createNewNode = (
   return { node: newNode, edge: newEdge }
 }
 
+const parseStateFromStorage = (storageKey: string): MindMapState => {
+  try {
+    const stored = localStorage.getItem(storageKey)
+    if (!stored) return getInitialState()
+
+    const parsedData = JSON.parse(stored)
+    const parsed =
+      typeof parsedData === 'object' && parsedData !== null ? parsedData : {}
+    const initial = getInitialState()
+
+    let safeNodes = initial.nodes
+    if (Array.isArray(parsed?.nodes)) {
+      const filtered = parsed.nodes.filter(
+        (n: any) =>
+          n &&
+          typeof n === 'object' &&
+          typeof n.id === 'string' &&
+          n.position &&
+          typeof n.position.x === 'number' &&
+          typeof n.position.y === 'number',
+      )
+      if (filtered.length > 0) safeNodes = filtered
+    }
+
+    let safeEdges = initial.edges
+    if (Array.isArray(parsed?.edges)) {
+      safeEdges = parsed.edges.filter(
+        (e: any) =>
+          e &&
+          typeof e === 'object' &&
+          typeof e.id === 'string' &&
+          typeof e.source === 'string' &&
+          typeof e.target === 'string',
+      )
+    }
+
+    return {
+      ...initial,
+      ...parsed,
+      nodes: safeNodes,
+      edges: safeEdges,
+      viewport:
+        parsed?.viewport &&
+        typeof parsed.viewport.x === 'number' &&
+        typeof parsed.viewport.y === 'number' &&
+        typeof parsed.viewport.scale === 'number'
+          ? parsed.viewport
+          : initial.viewport,
+      edgeStyle:
+        parsed?.edgeStyle === 'straight' || parsed?.edgeStyle === 'curved'
+          ? parsed.edgeStyle
+          : initial.edgeStyle,
+      editingNodeId: null,
+      configuringNodeId: null,
+      documentViewNodeId: null,
+      highlightedNodeId: null,
+    }
+  } catch (error) {
+    console.warn(
+      `Failed to parse state for ${storageKey}, using default state.`,
+      error,
+    )
+    return getInitialState()
+  }
+}
+
 export const MindMapProvider = ({
   children,
   projectId = 'default',
@@ -107,117 +177,16 @@ export const MindMapProvider = ({
 }) => {
   const storageKey = `mindmap-data-v3-${projectId}`
 
-  const [state, setState] = useState<MindMapState>(() => {
-    try {
-      const stored = localStorage.getItem(storageKey)
-      if (stored) {
-        const parsedData = JSON.parse(stored)
-        const parsed =
-          typeof parsedData === 'object' && parsedData !== null
-            ? parsedData
-            : {}
-        const initial = getInitialState()
+  const [state, setState] = useState<MindMapState>(() =>
+    parseStateFromStorage(storageKey),
+  )
 
-        let safeNodes = initial.nodes
-        if (Array.isArray(parsed?.nodes)) {
-          const filtered = parsed.nodes.filter(
-            (n: any) =>
-              n &&
-              typeof n === 'object' &&
-              n.id &&
-              n.position &&
-              typeof n.position.x === 'number',
-          )
-          if (filtered.length > 0) safeNodes = filtered
-        }
-
-        let safeEdges = initial.edges
-        if (Array.isArray(parsed?.edges)) {
-          safeEdges = parsed.edges.filter(
-            (e: any) =>
-              e && typeof e === 'object' && e.id && e.source && e.target,
-          )
-        }
-
-        return {
-          ...initial,
-          ...parsed,
-          nodes: safeNodes,
-          edges: safeEdges,
-          viewport:
-            parsed?.viewport?.x !== undefined
-              ? parsed.viewport
-              : initial.viewport,
-          edgeStyle: parsed?.edgeStyle || initial.edgeStyle,
-          editingNodeId: null,
-          configuringNodeId: null,
-          documentViewNodeId: null,
-          highlightedNodeId: null,
-        }
-      }
-      return getInitialState()
-    } catch (error) {
-      console.error('Failed to load mindmap state from local storage:', error)
-      return getInitialState()
-    }
-  })
-
+  // Handle cross-project switching safely
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(storageKey)
-      if (stored) {
-        const parsedData = JSON.parse(stored)
-        const parsed =
-          typeof parsedData === 'object' && parsedData !== null
-            ? parsedData
-            : {}
-        const initial = getInitialState()
-
-        let safeNodes = initial.nodes
-        if (Array.isArray(parsed?.nodes)) {
-          const filtered = parsed.nodes.filter(
-            (n: any) =>
-              n &&
-              typeof n === 'object' &&
-              n.id &&
-              n.position &&
-              typeof n.position.x === 'number',
-          )
-          if (filtered.length > 0) safeNodes = filtered
-        }
-
-        let safeEdges = initial.edges
-        if (Array.isArray(parsed?.edges)) {
-          safeEdges = parsed.edges.filter(
-            (e: any) =>
-              e && typeof e === 'object' && e.id && e.source && e.target,
-          )
-        }
-
-        setState({
-          ...initial,
-          ...parsed,
-          nodes: safeNodes,
-          edges: safeEdges,
-          viewport:
-            parsed?.viewport?.x !== undefined
-              ? parsed.viewport
-              : initial.viewport,
-          edgeStyle: parsed?.edgeStyle || initial.edgeStyle,
-          editingNodeId: null,
-          configuringNodeId: null,
-          documentViewNodeId: null,
-          highlightedNodeId: null,
-        })
-      } else {
-        setState(getInitialState())
-      }
-    } catch (error) {
-      console.error('Failed to switch project state:', error)
-      setState(getInitialState())
-    }
+    setState(parseStateFromStorage(storageKey))
   }, [storageKey])
 
+  // Persist state changes without blocking UI
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       try {
@@ -247,9 +216,7 @@ export const MindMapProvider = ({
   const setHighlightedNodeId = useCallback((id: string | null) => {
     setState((prev) => ({ ...prev, highlightedNodeId: id }))
 
-    if (highlightTimeoutRef.current) {
-      clearTimeout(highlightTimeoutRef.current)
-    }
+    if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current)
 
     if (id) {
       highlightTimeoutRef.current = setTimeout(() => {
@@ -265,7 +232,6 @@ export const MindMapProvider = ({
   const addNode = useCallback((parentId: string | null) => {
     setState((prev) => {
       const { node, edge } = createNewNode(prev.nodes, parentId)
-
       const updatedNodes = (prev.nodes || [])
         .map((n) => ({ ...n, selected: false }))
         .concat(node)
@@ -365,7 +331,6 @@ export const MindMapProvider = ({
       calculateHeight(root.id)
 
       const newNodes = [...safeNodes]
-
       const assignPositions = (id: string, x: number, startY: number) => {
         const nodeIndex = newNodes.findIndex((n) => n.id === id)
         if (nodeIndex !== -1) {
@@ -436,31 +401,28 @@ export const MindMapProvider = ({
         })
       }
 
-      const isDeletingEditingNode =
-        prev.editingNodeId && nodesToDelete.has(prev.editingNodeId)
-      const isDeletingConfiguringNode =
-        prev.configuringNodeId && nodesToDelete.has(prev.configuringNodeId)
-      const isDeletingDocumentNode =
-        prev.documentViewNodeId && nodesToDelete.has(prev.documentViewNodeId)
-      const isDeletingHighlightedNode =
-        prev.highlightedNodeId && nodesToDelete.has(prev.highlightedNodeId)
-
       return {
         ...prev,
         nodes: (prev.nodes || []).filter((n) => !nodesToDelete.has(n.id)),
         edges: (prev.edges || []).filter(
           (e) => !nodesToDelete.has(e.source) && !nodesToDelete.has(e.target),
         ),
-        editingNodeId: isDeletingEditingNode ? null : prev.editingNodeId,
-        configuringNodeId: isDeletingConfiguringNode
-          ? null
-          : prev.configuringNodeId,
-        documentViewNodeId: isDeletingDocumentNode
-          ? null
-          : prev.documentViewNodeId,
-        highlightedNodeId: isDeletingHighlightedNode
-          ? null
-          : prev.highlightedNodeId,
+        editingNodeId:
+          prev.editingNodeId && nodesToDelete.has(prev.editingNodeId)
+            ? null
+            : prev.editingNodeId,
+        configuringNodeId:
+          prev.configuringNodeId && nodesToDelete.has(prev.configuringNodeId)
+            ? null
+            : prev.configuringNodeId,
+        documentViewNodeId:
+          prev.documentViewNodeId && nodesToDelete.has(prev.documentViewNodeId)
+            ? null
+            : prev.documentViewNodeId,
+        highlightedNodeId:
+          prev.highlightedNodeId && nodesToDelete.has(prev.highlightedNodeId)
+            ? null
+            : prev.highlightedNodeId,
       }
     })
   }, [])
@@ -540,8 +502,10 @@ export const MindMapProvider = ({
 
       const currentViewport = prev.viewport || { x: 0, y: 0, scale: 1 }
       const scale = currentViewport.scale
-      const centerX = window.innerWidth / 2
-      const centerY = window.innerHeight / 2
+      const centerX =
+        typeof window !== 'undefined' ? window.innerWidth / 2 : 500
+      const centerY =
+        typeof window !== 'undefined' ? window.innerHeight / 2 : 500
 
       const nodeCenterX = node.position.x + (node.width || 200) / 2
       const nodeCenterY = node.position.y + (node.height || 80) / 2

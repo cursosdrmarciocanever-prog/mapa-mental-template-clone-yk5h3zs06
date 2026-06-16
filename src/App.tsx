@@ -33,7 +33,7 @@ const GlobalErrorFallback = (
           variant="destructive"
           onClick={() => {
             localStorage.clear()
-            window.location.reload()
+            window.location.href = '/'
           }}
         >
           Reset App State
