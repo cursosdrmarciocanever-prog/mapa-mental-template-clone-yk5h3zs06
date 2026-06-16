@@ -111,7 +111,11 @@ export const MindMapProvider = ({
     try {
       const stored = localStorage.getItem(storageKey)
       if (stored) {
-        const parsed = JSON.parse(stored)
+        const parsedData = JSON.parse(stored)
+        const parsed =
+          typeof parsedData === 'object' && parsedData !== null
+            ? parsedData
+            : {}
         const initial = getInitialState()
         return {
           ...initial,
@@ -140,7 +144,11 @@ export const MindMapProvider = ({
     try {
       const stored = localStorage.getItem(storageKey)
       if (stored) {
-        const parsed = JSON.parse(stored)
+        const parsedData = JSON.parse(stored)
+        const parsed =
+          typeof parsedData === 'object' && parsedData !== null
+            ? parsedData
+            : {}
         const initial = getInitialState()
         setState({
           ...initial,
