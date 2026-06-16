@@ -38,8 +38,8 @@ interface MindMapTreeListProps {
 }
 
 const MindMapTreeList = ({ nodes, parentId, level }: MindMapTreeListProps) => {
-  const items = (nodes || []).filter(
-    (n) => n?.parentId === parentId || (!n?.parentId && !parentId),
+  const items = (Array.isArray(nodes) ? nodes : []).filter(
+    (n) => n && (n.parentId === parentId || (!n.parentId && !parentId)),
   )
 
   if (items.length === 0) return null
@@ -68,8 +68,11 @@ const MindMapTreeItem = ({ node, allNodes, level }: MindMapTreeItemProps) => {
   const mindMap = useMindMap()
   const selectNode = mindMap?.selectNode ?? (() => {})
   const focusNode = mindMap?.focusNode ?? (() => {})
+  const toggleNodeCollapse = mindMap?.toggleNodeCollapse ?? (() => {})
 
-  const hasChildren = (allNodes || []).some((n) => n?.parentId === node?.id)
+  const hasChildren = (Array.isArray(allNodes) ? allNodes : []).some(
+    (n) => n && n.parentId === node?.id,
+  )
 
   const handleNodeClick = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -85,7 +88,11 @@ const MindMapTreeItem = ({ node, allNodes, level }: MindMapTreeItemProps) => {
   if (level === 0) {
     return (
       <SidebarMenuItem>
-        <Collapsible className="group/collapsible">
+        <Collapsible
+          className="group/collapsible"
+          open={!node.collapsed}
+          onOpenChange={(open) => toggleNodeCollapse(node.id, !open)}
+        >
           <SidebarMenuButton
             onClick={handleNodeClick}
             isActive={node.selected}
@@ -122,7 +129,11 @@ const MindMapTreeItem = ({ node, allNodes, level }: MindMapTreeItemProps) => {
   // Nested items (Level 1+)
   return (
     <SidebarMenuSubItem className="relative">
-      <Collapsible className="group/collapsible">
+      <Collapsible
+        className="group/collapsible"
+        open={!node.collapsed}
+        onOpenChange={(open) => toggleNodeCollapse(node.id, !open)}
+      >
         <div className="flex items-center w-full relative">
           <SidebarMenuSubButton
             onClick={handleNodeClick}

@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from 'react'
+import { useRef, useState, useCallback, useEffect, useMemo } from 'react'
 import { useMindMap } from './context'
 import { Node } from './Node'
 import { Edge } from './Edge'
@@ -28,6 +28,31 @@ export const MindMapCanvas = () => {
 
   const [isDragging, setIsDragging] = useState(false)
   const [showMiniMap, setShowMiniMap] = useState(true)
+
+  const visibleNodes = useMemo(() => {
+    if (!state?.nodes || !Array.isArray(state.nodes)) return []
+    const nodesById = new Map(state.nodes.filter(Boolean).map((n) => [n.id, n]))
+
+    const isVisible = (id: string): boolean => {
+      const node = nodesById.get(id)
+      if (!node) return false
+      if (!node.parentId) return true
+      const parent = nodesById.get(node.parentId)
+      if (!parent) return true
+      if (parent.collapsed) return false
+      return isVisible(node.parentId)
+    }
+
+    return state.nodes.filter((n) => n && isVisible(n.id))
+  }, [state?.nodes])
+
+  const visibleEdges = useMemo(() => {
+    if (!state?.edges || !Array.isArray(state.edges)) return []
+    const visibleNodeIds = new Set(visibleNodes.map((n) => n.id))
+    return state.edges.filter(
+      (e) => e && visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target),
+    )
+  }, [state?.edges, visibleNodes])
 
   useEffect(() => {
     return () => {
@@ -280,32 +305,24 @@ export const MindMapCanvas = () => {
           className="absolute top-0 left-0 overflow-visible pointer-events-none"
           style={{ width: '100%', height: '100%' }}
         >
-          {Array.isArray(state.edges) &&
-            state.edges.map((edge) => {
-              if (!edge || !edge.id) return null
-              const sourceNode = Array.isArray(state.nodes)
-                ? state.nodes.find((n) => n && n.id === edge.source)
-                : null
-              const targetNode = Array.isArray(state.nodes)
-                ? state.nodes.find((n) => n && n.id === edge.target)
-                : null
-              if (!sourceNode || !targetNode) return null
-              return (
-                <Edge
-                  key={edge.id}
-                  edge={edge}
-                  sourceNode={sourceNode}
-                  targetNode={targetNode}
-                />
-              )
-            })}
+          {visibleEdges.map((edge) => {
+            const sourceNode = visibleNodes.find((n) => n.id === edge.source)
+            const targetNode = visibleNodes.find((n) => n.id === edge.target)
+            if (!sourceNode || !targetNode) return null
+            return (
+              <Edge
+                key={edge.id}
+                edge={edge}
+                sourceNode={sourceNode}
+                targetNode={targetNode}
+              />
+            )
+          })}
         </svg>
 
-        {Array.isArray(state.nodes) &&
-          state.nodes.map((node) => {
-            if (!node || !node.id) return null
-            return <Node key={node.id} node={node} />
-          })}
+        {visibleNodes.map((node) => {
+          return <Node key={node.id} node={node} />
+        })}
       </div>
 
       <MindMapControls

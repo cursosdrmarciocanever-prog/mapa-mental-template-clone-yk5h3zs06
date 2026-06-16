@@ -2,7 +2,14 @@ import { useState, useRef, useEffect, useLayoutEffect } from 'react'
 import { MindMapNode } from '@/lib/types'
 import { useMindMap } from './context'
 import { cn } from '@/lib/utils'
-import { Plus, Trash2, Settings, FileText as FileTextIcon } from 'lucide-react'
+import {
+  Plus,
+  Trash2,
+  Settings,
+  FileText as FileTextIcon,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -36,6 +43,7 @@ export const Node = ({ node }: NodeProps) => {
     setConfiguringNodeId,
     setDocumentViewNodeId,
     toggleNodeChecked,
+    toggleNodeCollapse,
   } = useMindMap()
   const [label, setLabel] = useState(node.label)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -49,6 +57,10 @@ export const Node = ({ node }: NodeProps) => {
 
   const iconName = node.icon ? LegacyIconMap[node.icon] || node.icon : 'Zap'
   const IconComponent = (LucideIcons as any)[iconName] || LucideIcons.Zap
+
+  const hasChildren =
+    Array.isArray(state.nodes) &&
+    state.nodes.some((n) => n && n.parentId === node.id)
 
   // Sync state label when node prop changes (e.g. undo/redo or external update)
   useEffect(() => {
@@ -147,7 +159,9 @@ export const Node = ({ node }: NodeProps) => {
           ? 'ring-4 ring-yellow-400/80 dark:ring-yellow-500/80 border-yellow-500 dark:border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.5)] z-40'
           : node.selected
             ? 'ring-2 ring-primary border-primary z-30 shadow-md'
-            : 'border-border z-10',
+            : node.collapsed
+              ? 'border-dashed border-2 border-muted-foreground/40 z-10 shadow-sm'
+              : 'border-border z-10',
         'cursor-grab active:cursor-grabbing',
       )}
       style={{
@@ -268,13 +282,13 @@ export const Node = ({ node }: NodeProps) => {
       {/* Connection Points (Hover Buttons) */}
       <div
         className={cn(
-          'absolute -right-3 top-1/2 -translate-y-1/2 flex flex-col gap-1 transition-all duration-200',
+          'absolute -right-3 top-1/2 -translate-y-1/2 flex flex-col gap-1 transition-all duration-200 z-20',
           'opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0',
         )}
       >
         <Button
           size="icon"
-          className="h-6 w-6 rounded-full shadow-md border border-background"
+          className="h-6 w-6 rounded-full shadow-md border border-background bg-background text-foreground hover:bg-muted"
           onClick={handleAddChild}
           onMouseDown={stopPropagation}
           title="Add Next Step"
@@ -282,6 +296,35 @@ export const Node = ({ node }: NodeProps) => {
           <Plus className="h-3 w-3" />
         </Button>
       </div>
+
+      {/* Expand/Collapse Toggle */}
+      {hasChildren && (
+        <div
+          className={cn(
+            'absolute -bottom-3 left-1/2 -translate-x-1/2 z-20 transition-all duration-200',
+            node.collapsed
+              ? 'opacity-100'
+              : 'opacity-0 group-hover:opacity-100 translate-y-[-4px] group-hover:translate-y-0',
+          )}
+        >
+          <Button
+            size="icon"
+            className="h-6 w-6 rounded-full shadow-md border border-background bg-background text-foreground hover:bg-muted"
+            onClick={(e) => {
+              e.stopPropagation()
+              toggleNodeCollapse(node.id, !node.collapsed)
+            }}
+            onMouseDown={stopPropagation}
+            title={node.collapsed ? 'Expand branch' : 'Collapse branch'}
+          >
+            {node.collapsed ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronUp className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+      )}
 
       {/* Task Mode Checkbox (Top-Right) */}
       {isTaskMode && (

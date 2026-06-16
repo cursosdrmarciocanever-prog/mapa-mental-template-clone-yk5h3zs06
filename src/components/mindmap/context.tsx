@@ -556,6 +556,15 @@ export const MindMapProvider = ({
     }))
   }, [])
 
+  const toggleNodeCollapse = useCallback((id: string, collapsed: boolean) => {
+    setState((prev) => ({
+      ...prev,
+      nodes: (prev.nodes || []).map((n) =>
+        n.id === id ? { ...n, collapsed } : n,
+      ),
+    }))
+  }, [])
+
   return (
     <MindMapContext.Provider
       value={{
@@ -581,6 +590,7 @@ export const MindMapProvider = ({
         focusNode,
         toggleTaskMode,
         toggleNodeChecked,
+        toggleNodeCollapse,
         autoLayout,
         updateNodeAppearance,
       }}

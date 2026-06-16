@@ -17,6 +17,7 @@ export type MindMapNode = {
   selected?: boolean
   taskModeEnabled?: boolean
   checked?: boolean
+  collapsed?: boolean
 }
 
 export type MindMapEdge = {
@@ -65,6 +66,7 @@ export type MindMapContextType = {
   focusNode: (id: string) => void
   toggleTaskMode: (id: string, enabled: boolean) => void
   toggleNodeChecked: (id: string, checked: boolean) => void
+  toggleNodeCollapse: (id: string, collapsed: boolean) => void
   autoLayout: () => void
   updateNodeAppearance: (id: string, icon?: string, color?: string) => void
 }
