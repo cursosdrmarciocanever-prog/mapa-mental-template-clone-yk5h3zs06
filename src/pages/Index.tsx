@@ -25,25 +25,28 @@ export default function Index() {
     <ErrorBoundary
       key={`eb-${currentTab}`}
       fallback={
-        <div className="absolute inset-0 flex items-center justify-center bg-background z-50">
-          <div className="text-center p-8 bg-card rounded-xl border max-w-md shadow-sm">
+        <div className="flex w-full h-full min-h-[400px] items-center justify-center bg-background p-6">
+          <div className="text-center p-8 bg-destructive/5 rounded-xl border border-destructive/20 max-w-md shadow-sm">
             <div className="flex justify-center mb-4">
               <div className="bg-destructive/10 p-3 rounded-full">
                 <AlertCircle className="w-8 h-8 text-destructive" />
               </div>
             </div>
-            <h2 className="text-xl font-bold mb-2">Something went wrong</h2>
+            <h2 className="text-xl font-bold mb-2 text-destructive">
+              Something went wrong
+            </h2>
             <p className="text-muted-foreground mb-6">
-              We encountered an error while loading the mindmap. This might be
-              due to corrupted saved data or an unhandled state.
+              We encountered a critical error while loading the mindmap. This
+              might be due to corrupted saved data or an unhandled state.
             </p>
             <Button
+              variant="destructive"
               onClick={() => {
                 localStorage.removeItem(`mindmap-data-v3-${currentTab}`)
                 window.location.reload()
               }}
             >
-              Reset Project Data
+              Reset App State
             </Button>
           </div>
         </div>

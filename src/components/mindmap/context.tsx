@@ -117,15 +117,37 @@ export const MindMapProvider = ({
             ? parsedData
             : {}
         const initial = getInitialState()
+
+        let safeNodes = initial.nodes
+        if (Array.isArray(parsed?.nodes)) {
+          const filtered = parsed.nodes.filter(
+            (n: any) =>
+              n &&
+              typeof n === 'object' &&
+              n.id &&
+              n.position &&
+              typeof n.position.x === 'number',
+          )
+          if (filtered.length > 0) safeNodes = filtered
+        }
+
+        let safeEdges = initial.edges
+        if (Array.isArray(parsed?.edges)) {
+          safeEdges = parsed.edges.filter(
+            (e: any) =>
+              e && typeof e === 'object' && e.id && e.source && e.target,
+          )
+        }
+
         return {
           ...initial,
           ...parsed,
-          nodes:
-            Array.isArray(parsed?.nodes) && parsed.nodes.length > 0
-              ? parsed.nodes
-              : initial.nodes,
-          edges: Array.isArray(parsed?.edges) ? parsed.edges : initial.edges,
-          viewport: parsed?.viewport || initial.viewport,
+          nodes: safeNodes,
+          edges: safeEdges,
+          viewport:
+            parsed?.viewport?.x !== undefined
+              ? parsed.viewport
+              : initial.viewport,
           edgeStyle: parsed?.edgeStyle || initial.edgeStyle,
           editingNodeId: null,
           configuringNodeId: null,
@@ -150,15 +172,37 @@ export const MindMapProvider = ({
             ? parsedData
             : {}
         const initial = getInitialState()
+
+        let safeNodes = initial.nodes
+        if (Array.isArray(parsed?.nodes)) {
+          const filtered = parsed.nodes.filter(
+            (n: any) =>
+              n &&
+              typeof n === 'object' &&
+              n.id &&
+              n.position &&
+              typeof n.position.x === 'number',
+          )
+          if (filtered.length > 0) safeNodes = filtered
+        }
+
+        let safeEdges = initial.edges
+        if (Array.isArray(parsed?.edges)) {
+          safeEdges = parsed.edges.filter(
+            (e: any) =>
+              e && typeof e === 'object' && e.id && e.source && e.target,
+          )
+        }
+
         setState({
           ...initial,
           ...parsed,
-          nodes:
-            Array.isArray(parsed?.nodes) && parsed.nodes.length > 0
-              ? parsed.nodes
-              : initial.nodes,
-          edges: Array.isArray(parsed?.edges) ? parsed.edges : initial.edges,
-          viewport: parsed?.viewport || initial.viewport,
+          nodes: safeNodes,
+          edges: safeEdges,
+          viewport:
+            parsed?.viewport?.x !== undefined
+              ? parsed.viewport
+              : initial.viewport,
           edgeStyle: parsed?.edgeStyle || initial.edgeStyle,
           editingNodeId: null,
           configuringNodeId: null,
